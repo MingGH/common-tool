@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>run.runnable</groupId>
     <artifactId>common-tool</artifactId>
-    <version>0.0.10-SNAPSHOT</version>
+    <version>0.0.11-SNAPSHOT</version>
     <name>common-tool</name>
     <description>common-tool</description>
     <properties>
