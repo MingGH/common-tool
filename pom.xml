@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>run.runnable</groupId>
     <artifactId>common-tool</artifactId>
-    <version>..1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <name>common-tool</name>
     <description>common-tool</description>
     <properties>
@@ -21,6 +21,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
             <version>3.1.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+            <version>2.15.2</version>
         </dependency>
 
     </dependencies>

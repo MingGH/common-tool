@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 /**
  * @author Asher
@@ -11,7 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class JsonUtil {
 
-    public static JsonNode String2JsonNode(String str){
+    public static JsonNode string2JsonNode(String str){
         try {
             return new ObjectMapper().readTree(str);
         } catch (JsonProcessingException e) {
@@ -26,6 +27,15 @@ public class JsonUtil {
             throw new RuntimeException(e);
         }
     }
+
+    public static JsonNode xml2JsonNode(String xml){
+        try {
+            return new XmlMapper().readTree(xml);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
 
 }
