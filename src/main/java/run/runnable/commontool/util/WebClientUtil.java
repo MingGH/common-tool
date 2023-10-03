@@ -24,7 +24,7 @@ public class WebClientUtil {
         WebClient webClient = WebClient.builder()
                 .clientConnector(
                     new ReactorClientHttpConnector(
-                            HttpClient.create().proxyWithSystemProperties().responseTimeout(Duration.ofSeconds(10))
+                            HttpClient.create().responseTimeout(Duration.ofSeconds(10))
                     )
                 )
                 .build();
@@ -35,6 +35,7 @@ public class WebClientUtil {
                 .retrieve()
                 .bodyToMono(String.class);
     }
+
 
     /**
      * 简单get请求
