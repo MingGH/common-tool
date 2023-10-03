@@ -36,4 +36,36 @@ public class WebClientUtil {
                 .bodyToMono(String.class);
     }
 
+    /**
+     * 简单get请求
+     * @param url
+     * @return {@link Mono}<{@link String}>
+     */
+    public static Mono<String> simpleGetReq(String url, boolean useDefaultProxy){
+        WebClient webClient = WebClient.builder()
+                .clientConnector(
+                        new ReactorClientHttpConnector(
+                                useDefaultProxy ?  getHttpClientWithProxy() : getHttpClient()
+                        )
+                )
+                .build();
+        return webClient
+                .get()
+                .uri(url)
+                .accept(MediaType.ALL)
+                .retrieve()
+                .bodyToMono(String.class);
+    }
+
+    protected static HttpClient getHttpClientWithProxy(){
+        return HttpClient.create()
+                .proxyWithSystemProperties()
+                .responseTimeout(Duration.ofSeconds(10));
+    }
+
+    protected static HttpClient getHttpClient(){
+        return HttpClient.create()
+                .responseTimeout(Duration.ofSeconds(10));
+    }
+
 }
