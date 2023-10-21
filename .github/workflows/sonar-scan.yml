@@ -1,0 +1,23 @@
+name: Sonar Scan
+
+on:
+  push:
+    branches: 
+      - '**'        # matches every branch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: sonarqube scan
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      id: vars
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+    - name: Sonar Scan
+      run: mvn clean verify sonar:sonar -Dsonar.projectKey=rainbow-helper -Dsonar.host.url=https://sonar.runnable.run -Dsonar.login=${{ secrets.SONAR_TOKEN }}  -Dsonar.branch.name=${{ steps.vars.outputs.branch }}
