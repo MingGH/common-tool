@@ -20,4 +20,4 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Sonar Scan
-      run: mvn clean verify sonar:sonar -Dsonar.projectKey=rainbow-helper -Dsonar.host.url=https://sonar.runnable.run -Dsonar.login=${{ secrets.SONAR_TOKEN }}  -Dsonar.branch.name=${{ steps.vars.outputs.branch }}
+      run: mvn clean verify sonar:sonar -Dsonar.projectKey=common-tool -Dsonar.host.url=https://sonar.runnable.run -Dsonar.login=${{ secrets.SONAR_TOKEN }}  -Dsonar.branch.name=${{ steps.vars.outputs.branch }}
