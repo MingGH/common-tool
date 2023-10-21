@@ -1,72 +1,95 @@
 package run.runnable.commontool.util;
 
-import org.springframework.http.MediaType;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.client.HttpClient;
 
-import java.time.Duration;
 
 /**
- * @author Asher
- * on 2023/10/2
+ * 快速创建一个WebClient
+ *
+ * @author asher
+ * @date 2023/10/19
  */
-public class WebClientUtil {
-
+public interface WebClientUtil {
 
     /**
      * 简单get请求
-     * @param url
-     * @return {@link Mono}<{@link String}>
+     *
+     * @param url 网址
+     * @return {@link Mono }<{@link String }>
+     * @author asher
+     * @date 2023/10/19
      */
-    public static Mono<String> simpleGetReq(String url){
-        WebClient webClient = WebClient.builder()
-                .clientConnector(
-                    new ReactorClientHttpConnector(
-                            HttpClient.create().responseTimeout(Duration.ofSeconds(60))
-                    )
-                )
-                .build();
-        return webClient
+    static Mono<String> simpleGetReq(String url){
+        return WebClient.builder()
+                .baseUrl(url).build()
                 .get()
-                .uri(url)
-                .accept(MediaType.ALL)
                 .retrieve()
                 .bodyToMono(String.class);
     }
 
-
     /**
-     * 简单get请求
-     * @param url
-     * @return {@link Mono}<{@link String}>
+     * 简单post请求
+     *
+     * @param url     网址
+     * @param headers headers
+     * @param body    body
+     * @return {@link Mono }<{@link String }>
+     * @author asher
+     * @date 2023/10/19
      */
-    public static Mono<String> simpleGetReq(String url, boolean useDefaultProxy){
-        WebClient webClient = WebClient.builder()
-                .clientConnector(
-                        new ReactorClientHttpConnector(
-                                useDefaultProxy ?  getHttpClientWithProxy() : getHttpClient()
-                        )
-                )
-                .build();
-        return webClient
-                .get()
-                .uri(url)
-                .accept(MediaType.ALL)
+    static Mono<String> simplePostReq(String url, MultiValueMap<String, String> headers, String body){
+        return WebClient.builder()
+                .baseUrl(url)
+                .defaultHeaders(it -> {
+                    it.addAll(headers);
+                })
+                .build()
+                .post()
+                .body(BodyInserters.fromValue(body))
                 .retrieve()
                 .bodyToMono(String.class);
     }
 
-    protected static HttpClient getHttpClientWithProxy(){
-        return HttpClient.create()
-                .proxyWithSystemProperties()
-                .responseTimeout(Duration.ofSeconds(10));
+    /**
+     * 带header的简单get请求
+     *
+     * @param url     网址
+     * @param headers headers
+     * @return {@link Mono }<{@link String }>
+     * @author asher
+     * @date 2023/10/19
+     */
+    static Mono<String> simpleGetReqWithHeader(String url, MultiValueMap<String, String> headers){
+        return WebClient.builder()
+                .defaultHeaders(it -> {
+                    it.addAll(headers);
+                })
+                .baseUrl(url).build()
+                .get()
+                .retrieve()
+                .bodyToMono(String.class);
     }
 
-    protected static HttpClient getHttpClient(){
-        return HttpClient.create()
-                .responseTimeout(Duration.ofSeconds(10));
+    /**
+     * 带header的简单get请求
+     *
+     * @param url    网址
+     * @param header header
+     * @param values header values
+     * @return {@link Mono }<{@link String }>
+     * @author asher
+     * @date 2023/10/19
+     */
+    static Mono<String> simpleGetReqWithHeader(String url, String header, String... values){
+        return WebClient.builder()
+                .defaultHeader(header, values)
+                .baseUrl(url).build()
+                .get()
+                .retrieve()
+                .bodyToMono(String.class);
     }
 
 }

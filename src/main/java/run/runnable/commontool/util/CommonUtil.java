@@ -1,13 +1,10 @@
 package run.runnable.commontool.util;
 
-import jakarta.annotation.Nullable;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.springframework.util.StringUtils;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Iterator;
 
 /**
@@ -15,11 +12,6 @@ import java.util.Iterator;
  * on 2023/10/2
  */
 public class CommonUtil {
-
-    public static <T> Iterable<T> getIterableFromIterator(Iterator<T> iterator)
-    {
-        return () -> iterator;
-    }
 
 
     /**
