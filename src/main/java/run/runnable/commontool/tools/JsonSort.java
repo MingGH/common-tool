@@ -16,12 +16,12 @@ import static com.alibaba.fastjson2.JSONWriter.Feature.*;
  */
 public class JsonSort {
 
-    public static void execute() {
+    public static String execute() {
         String content = ClipboardUtil.getClipboardStringData();
         JSONObject originJson = JSON.parseObject(content);
         String result = originJson.toString(PrettyFormat, MapSortField, WriteMapNullValue);
         ClipboardUtil.saveClipboardStringData(result);
-        ConsoleUtil.existSystem(5);
+        return result;
     }
 
 }
