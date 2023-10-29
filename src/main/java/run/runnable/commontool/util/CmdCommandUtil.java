@@ -5,6 +5,10 @@ import lombok.SneakyThrows;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 /**
@@ -45,6 +49,25 @@ public interface CmdCommandUtil {
             stringBuilder.append(line).append("\n");
         }
         return stringBuilder.toString();
+    }
+
+    @SneakyThrows
+    public static String execute(String... command) {
+        final Stream<String> commandStream = Arrays.stream(command);
+
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                Stream.concat(Stream.of("sh", "-c"), commandStream).toList()
+        );
+        processBuilder.redirectErrorStream(true);
+        Process process = processBuilder.start();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        StringBuilder result = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            result.append(line).append("\n");
+        }
+        return result.toString().trim();
     }
 
 }
