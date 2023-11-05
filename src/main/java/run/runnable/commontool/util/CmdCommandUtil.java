@@ -20,26 +20,26 @@ import java.util.stream.Stream;
 public interface CmdCommandUtil {
 
 
-    public static String CMD_GIT_BRANCH_SHOW = "git branch --show-current;";
+    String CMD_GIT_BRANCH_SHOW = "git branch --show-current;";
 
 
-    public static String executeGitBash(String cmdCommand){
+    static String executeGitBash(String cmdCommand){
         return execute("\"C:\\Program Files\\Git\\bin\\bash.exe\" -c " + "\"" + cmdCommand + "\"");
     }
 
-    public static InputStream executeGitBashNeedStream(String cmdCommand){
+    static InputStream executeGitBashNeedStream(String cmdCommand){
         return executeNeedStream("\"C:\\Program Files\\Git\\bin\\bash.exe\" -c " + "\"" + cmdCommand + "\"");
     }
 
 
     @SneakyThrows
-    public static InputStream executeNeedStream(String command) {
+    static InputStream executeNeedStream(String command) {
         Process process = Runtime.getRuntime().exec(command);
         return process.getInputStream();
     }
 
     @SneakyThrows
-    public static String execute(String command) {
+    static String execute(String command) {
         StringBuilder stringBuilder = new StringBuilder();
         Process process = Runtime.getRuntime().exec(command);
         BufferedReader bufferedReader = new BufferedReader(
@@ -52,7 +52,7 @@ public interface CmdCommandUtil {
     }
 
     @SneakyThrows
-    public static String execute(String... command) {
+    static String execute(String... command) {
         final Stream<String> commandStream = Arrays.stream(command);
 
         ProcessBuilder processBuilder = new ProcessBuilder(

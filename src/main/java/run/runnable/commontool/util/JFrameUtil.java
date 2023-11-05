@@ -7,7 +7,7 @@ import java.awt.*;
 public interface JFrameUtil {
 
 
-    public static void buildNotify(String tips){
+    static void buildNotify(String tips){
         JFrame frame = new JFrame("Tips");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         JLabel label = new JLabel(tips);
@@ -20,7 +20,7 @@ public interface JFrameUtil {
     }
 
 
-    public static JTextArea messageBox(String title){
+    static JTextArea messageBox(String title){
         JTextArea textArea = new JTextArea(10, 20);
         JFrame frame = new JFrame(title);
         DefaultCaret caret = (DefaultCaret) textArea.getCaret();
