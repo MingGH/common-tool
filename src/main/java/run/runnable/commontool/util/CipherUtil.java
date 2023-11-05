@@ -25,6 +25,7 @@ public interface CipherUtil {
     byte[] derivation = Hex.decode("202122232425263738393a3b3c3d3e3f");
     byte[] encoding   = Hex.decode("303132333435362728292a2b2c2d2e2f");
 
+
     /**
      * Encrypt by Elliptic Curve Crypt
      *
