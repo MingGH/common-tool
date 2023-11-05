@@ -15,9 +15,9 @@ import java.io.IOException;
 class CipherUtilTest {
 
     @Test
-    void encryptByEllipticCurveCrypt() throws IOException {
+    void encryptByECC() throws IOException {
         String password = "p@ssW0rd";
-        final byte[] bytes = CipherUtil.encryptByEllipticCurveCrypt(password.getBytes(),
+        final byte[] bytes = CipherUtil.encryptByECC(password.getBytes(),
                 "secp256k1",
                 "ECIES",
                 "PrivateKey.pem",
@@ -25,6 +25,25 @@ class CipherUtilTest {
         FileUtil.writeBytesToFile(bytes, "password.enc");
         Assertions.assertNotNull(bytes);
 
+    }
+
+    @Test
+    void encryptByECC_publicKey() throws IOException {
+        String password = "p@ssW0rd";
+        final File publicKeyFile = CommonUtilTest.getResourceFile("cipher/PublicKeyPath.pem");
+        final byte[] bytes = CipherUtil.encryptByECC(password.getBytes(),
+                "secp256k1",
+                "ECIES",
+                publicKeyFile,
+                "EC");
+
+
+        final File privateKeyFile = CommonUtilTest.getResourceFile("cipher/PrivateKey.pem");
+        final byte[] encryptBytes = FileUtils.readFileToByteArray(CommonUtilTest.getResourceFile("cipher/password.enc"));
+        final byte[] decryptContent = CipherUtil.decryptByEllipticCurveCrypt(encryptBytes, privateKeyFile, "EC", "ECIES");
+        final String decryptStr = new String(decryptContent);
+        System.out.println(decryptStr);
+        Assertions.assertEquals("p@ssW0rd", decryptStr);
     }
 
     @Test

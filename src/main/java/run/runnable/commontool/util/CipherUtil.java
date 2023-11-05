@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 
 import static run.runnable.commontool.util.KeyFileUtil.savePrivateKey;
 import static run.runnable.commontool.util.KeyFileUtil.savePublicKey;
@@ -34,16 +35,50 @@ public interface CipherUtil {
      *                           secp384r1：也称为 NIST P-384，它是一种具有 384 位长度的椭圆曲线参数，提供了比 secp256k1 和 secp256r1 更高的安全性，但可能会稍微降低性能。
      *                           secp521r1：也称为 NIST P-521，它是一种具有 521 位长度的椭圆曲线参数，提供了最高级别的安全性，但可能会牺牲一些性能。
      * @param transformation     transformation : ECIES（Elliptic Curve Integrated Encryption Scheme）加密方案
+     * @param publicFile  公钥路径
+     * @return {@link byte[]}
+     */
+    @SneakyThrows
+    static byte[] encryptByECC(byte[] encryptContent,
+                               String curveName,
+                               String transformation,
+                               File publicFile,
+                               String algorithm) {
+        Security.addProvider(new BouncyCastleProvider());
+
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC");
+        keyPairGenerator.initialize(ECNamedCurveTable.getParameterSpec(curveName));
+
+        final PublicKey publicKey = loadPublicKey(publicFile, algorithm);
+
+        // 使用公钥进行加密
+        IESParameterSpec params = new IESParameterSpec(derivation, encoding, 128, 128, null);
+        Cipher encryptCipher = Cipher.getInstance(transformation, "BC");
+        encryptCipher.init(Cipher.ENCRYPT_MODE, publicKey, params);
+
+        return encryptCipher.doFinal(encryptContent);
+    }
+
+    /**
+     * Encrypt by Elliptic Curve Crypt
+     *
+     * @param encryptContent     加密内容
+     * @param curveName          曲线名称 例如：
+     *                           secp256k1：这是比特币和以太坊等加密货币中广泛使用的椭圆曲线参数。它具有 256 位的长度，并提供了良好的安全性和性能。
+     *                           secp256r1/prime256v1：这是一种常见的椭圆曲线参数，也被称为 NIST P-256。它被广泛用于许多安全协议和应用中，提供了适当的安全性和性能。
+     *                           secp384r1：也称为 NIST P-384，它是一种具有 384 位长度的椭圆曲线参数，提供了比 secp256k1 和 secp256r1 更高的安全性，但可能会稍微降低性能。
+     *                           secp521r1：也称为 NIST P-521，它是一种具有 521 位长度的椭圆曲线参数，提供了最高级别的安全性，但可能会牺牲一些性能。
+     * @param transformation     transformation : ECIES（Elliptic Curve Integrated Encryption Scheme）加密方案
      * @param savePrivateKeyPath 保存私钥路径
      * @param savePublicKeyPath  保存公钥路径
      * @return {@link byte[]}
      */
     @SneakyThrows
-    static byte[] encryptByEllipticCurveCrypt(byte[] encryptContent,
-                                     String curveName,
-                                     String transformation,
-                                     String savePrivateKeyPath,
-                                     String savePublicKeyPath) {
+    static byte[] encryptByECC(byte[] encryptContent,
+                               String curveName,
+                               String transformation,
+                               String savePrivateKeyPath,
+                               String savePublicKeyPath) {
         Security.addProvider(new BouncyCastleProvider());
 
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC");
@@ -142,6 +177,23 @@ public interface CipherUtil {
             PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
             KeyFactory keyFactory = KeyFactory.getInstance(algorithm, "BC");
             return keyFactory.generatePrivate(privateKeySpec);
+        }
+    }
+
+    /**
+     * 加载私钥
+     *
+     * @param file  文件路径
+     * @param algorithm 算法
+     * @return {@link PrivateKey}
+     */
+    @SneakyThrows
+    static PublicKey loadPublicKey(File file, String algorithm) {
+        Security.addProvider(new BouncyCastleProvider());
+        try (FileInputStream fileInputStream = new FileInputStream(file)){
+            X509EncodedKeySpec privateKeySpec = new X509EncodedKeySpec(fileInputStream.readAllBytes());
+            KeyFactory keyFactory = KeyFactory.getInstance(algorithm, "BC");
+            return keyFactory.generatePublic(privateKeySpec);
         }
     }
 
