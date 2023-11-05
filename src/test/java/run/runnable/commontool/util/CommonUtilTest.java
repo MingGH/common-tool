@@ -25,13 +25,22 @@ class CommonUtilTest {
     void testGetIterableFromIterator() {
     }
 
+
     @Test
     void getHtmlContent() throws IOException {
-        ClassLoader classLoader = getClass().getClassLoader();
-        File file = new File(classLoader.getResource("commonutil/htmlContent.html").getFile());
+        getResourceContent("commonutil/htmlContent.html");
 
-        final String htmlContent = FileUtils.readFileToString(file);
-        System.out.println(CommonUtil.getHtmlContent(htmlContent, null));
+    }
 
+    public static String getResourceContent(String path) throws IOException {
+        ClassLoader classLoader = CommonUtilTest.class.getClassLoader();
+        File file = new File(classLoader.getResource(path).getFile());
+
+        return FileUtils.readFileToString(file);
+    }
+
+    public static File getResourceFile(String path){
+        ClassLoader classLoader = CommonUtilTest.class.getClassLoader();
+        return new File(classLoader.getResource(path).getFile());
     }
 }

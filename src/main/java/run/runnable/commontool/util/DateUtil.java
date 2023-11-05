@@ -15,7 +15,7 @@ public interface DateUtil {
      * @author asher
      * @date 2023/10/19
      */
-    public static String convertToHongKongTime(String inputTime) {
+    static String convertToHongKongTime(String inputTime) {
         ZonedDateTime hongKongTime = Instant.parse(inputTime).atZone(ZoneId.of("Asia/Hong_Kong"));
         return hongKongTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z"));
     }
