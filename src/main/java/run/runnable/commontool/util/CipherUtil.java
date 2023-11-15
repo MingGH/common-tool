@@ -1,18 +1,31 @@
 package run.runnable.commontool.util;
 
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.IESParameterSpec;
 import org.bouncycastle.util.encoders.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+import run.runnable.commontool.entity.ChunkFileInfo;
 
 import javax.crypto.Cipher;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
+import static run.runnable.commontool.util.FileUtil.appendToFile;
+import static run.runnable.commontool.util.FileUtil.split2ChunkedFiles;
 import static run.runnable.commontool.util.KeyFileUtil.savePrivateKey;
 import static run.runnable.commontool.util.KeyFileUtil.savePublicKey;
 
@@ -22,8 +35,11 @@ import static run.runnable.commontool.util.KeyFileUtil.savePublicKey;
  */
 public interface CipherUtil {
 
+    Logger log = LoggerFactory.getLogger(CipherUtil.class);
+
     byte[] derivation = Hex.decode("202122232425263738393a3b3c3d3e3f");
     byte[] encoding   = Hex.decode("303132333435362728292a2b2c2d2e2f");
+
 
     /**
      * Encrypt by Elliptic Curve Crypt
@@ -195,6 +211,100 @@ public interface CipherUtil {
             KeyFactory keyFactory = KeyFactory.getInstance(algorithm, "BC");
             return keyFactory.generatePublic(privateKeySpec);
         }
+    }
+
+    /**
+     * Encrypt large files in parallel, split them into multiple byte arrays for encryption, and finally convert to base64 encoding.
+     *
+     * @param filePath       Files that need to be encrypted
+     * @param targetFilePath The file name of the encrypted file
+     * @param chunkSize      File split size
+     * @param publicKey     public key
+     * @return {@link Flux}<{@link Void}>
+     */
+    static Flux<Void> encryptBigFile(String filePath, String targetFilePath, int chunkSize, File publicKey){
+        return Mono.just(filePath)
+                .doFirst(deleteFile(targetFilePath))
+                .map(FileUtil::newRandomAccessFile).flux()
+                .flatMap(file -> split2ChunkedFiles(file, chunkSize).limitRate(8))
+                .doOnNext(it -> log.info("startOffset:{} endOffset:{}", it.getStartOffset(), it.getEndOffset()))
+                .flatMapSequential(chunkedFile -> {
+                    long startOffset = chunkedFile.getStartOffset();
+                    long endOffset = chunkedFile.getEndOffset();
+                    return Mono.just(chunkedFile.getBytes())
+                            .publishOn(Schedulers.boundedElastic())
+                            .flux()
+                            .doOnNext(it -> log.info("starting encrypt chunk file"))
+                            .map(chunkByte -> encryptByECC(chunkByte, "secp256k1", "ECIES", publicKey, "EC"))
+                            .map(encryptBytes -> Base64.getEncoder().encodeToString(encryptBytes))
+                            .map(base64 -> startOffset + ":" + endOffset + ":" +  base64)
+                            ;
+                })
+                .concatMap(content -> appendToFile(targetFilePath, content));
+    }
+
+    /**
+     * Decrypt the file encrypted by the encryptBigFile method and restore it to the same file
+     *
+     * @param encryptFilePath encryptFilePath
+     * @param targetFilePath  targetFilePath
+     * @param privateKey  privateKey
+     * @return {@link Flux}<{@link Void}>
+     */
+    static Flux<Void> decryptBigFile(String encryptFilePath, String targetFilePath, File privateKey){
+        return Mono.just(encryptFilePath)
+                .flux()
+                .doFirst(deleteFile(targetFilePath))
+                .flatMap(it -> FileUtil.readLines(it).limitRate(8))
+                .buffer(4)
+                .flatMapSequential(lines ->
+                        Flux.fromIterable(lines)
+                                .publishOn(Schedulers.boundedElastic())
+                                .map(line -> decrypt2ChunkFileInfo(privateKey, line))
+                )
+                .doOnNext(it -> log.info("startOffset:{} endOffset:{}", it.getStartOffset(), it.getEndOffset()))
+                .publishOn(Schedulers.single())
+                .concatMap(chunkFileInfo -> {
+                    return Mono.just(chunkFileInfo)
+                            .doOnNext(it -> mergeChunkFile(targetFilePath, it))
+                            .then();
+                });
+    }
+
+    @SneakyThrows
+    private static void mergeChunkFile(String decryptFilePath, ChunkFileInfo chunkFileInfo) {
+        log.info("starting writeChunkFile");
+        // Open file for append using "rw"
+        try (RandomAccessFile mergedFile = new RandomAccessFile(decryptFilePath, "rw")){
+            // Move the file pointer to the starting position
+            mergedFile.seek(chunkFileInfo.getStartOffset());
+            mergedFile.write(chunkFileInfo.getBytes(), 0, chunkFileInfo.getChunkSize());
+        }
+    }
+
+    private static ChunkFileInfo decrypt2ChunkFileInfo(File privateKeyFile, String line) {
+        String[] split = line.split(":");
+        long startOffset = Long.parseLong(split[0]);
+        long endOffset = Long.parseLong(split[1]);
+        String base64Str = split[2];
+        log.info("starting decode");
+        byte[] decode = Base64.getDecoder().decode(base64Str);
+        byte[] decryptByte = CipherUtil.decryptByEllipticCurveCrypt(decode, privateKeyFile, "EC", "ECIES");
+
+        return new ChunkFileInfo(startOffset, endOffset, (int)(endOffset - startOffset), decryptByte);
+    }
+
+    private static Runnable deleteFile(String filePath) {
+        return () -> {
+            try {
+                File file = new File(filePath);
+                if (file.exists()) {
+                    FileUtils.forceDelete(file);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        };
     }
 
 }
