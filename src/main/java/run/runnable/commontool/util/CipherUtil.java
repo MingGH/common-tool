@@ -224,7 +224,7 @@ public interface CipherUtil {
      */
     static Flux<Void> encryptBigFile(String filePath, String targetFilePath, int chunkSize, File publicKey){
         return Mono.just(filePath)
-                .doFirst(deleteFile(filePath))
+                .doFirst(deleteFile(targetFilePath))
                 .map(FileUtil::newRandomAccessFile).flux()
                 .flatMap(file -> split2ChunkedFiles(file, chunkSize).limitRate(8))
                 .doOnNext(it -> log.info("startOffset:{} endOffset:{}", it.getStartOffset(), it.getEndOffset()))
