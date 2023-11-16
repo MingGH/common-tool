@@ -10,7 +10,10 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.stream.BaseStream;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
@@ -108,26 +111,11 @@ public interface FileUtil {
      * @return {@link Flux}<{@link String}>
      */
     static Flux<String> readLines(String path){
-        return Flux.create(sink -> {
-            try {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(path)));
-
-                String line;
-                while ((line = reader.readLine()) != null ) {
-
-                    while (sink.requestedFromDownstream() == 0 && !sink.isCancelled()) {
-                        //waiting request
-                    }
-
-                    sink.next(line);
-                }
-
-                reader.close();
-                sink.complete();
-            } catch (IOException e) {
-                sink.error(e);
-            }
-        });
+        return Flux.using(
+                () -> Files.lines(Path.of(path)),
+                Flux::fromStream,
+                BaseStream::close
+        );
     }
 
 
@@ -140,13 +128,16 @@ public interface FileUtil {
      */
     @SneakyThrows
     static Mono<Void> appendToFile(String filePath, String content) {
-        return Mono.fromCallable(() -> {
-            try (FileWriter fileWriter = new FileWriter(filePath, true)) {
-                fileWriter.write(content);
-                fileWriter.write(System.lineSeparator());
+        return Mono.fromRunnable(() -> {
+            try {
+                if (!Files.exists(Path.of(filePath))) {
+                    Files.createFile(Path.of(filePath));
+                }
+                Files.write(Path.of(filePath), (content + System.lineSeparator()).getBytes(), StandardOpenOption.APPEND);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to append to file", e);
             }
-            return true;
-        }).then();
+        }).onErrorResume(e -> Mono.error(new RuntimeException("Failed to append to file", e))).then();
     }
 
     @SneakyThrows
