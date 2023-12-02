@@ -213,6 +213,39 @@ public interface CipherUtil {
         }
     }
 
+
+    /**
+     * 加密大文件
+     * @param filePath       文件路径
+     * @param targetFilePath 目标文件路径
+     * @param chunkSize      块大小
+     * @param publicKey      公钥
+     * @param singleFileSize 加密后单个文件大小
+     * @return {@link Flux}<{@link Void}>
+     */
+    static Flux<Void> encryptBigFile(String filePath, String targetFilePath, int chunkSize, File publicKey, long singleFileSize){
+        return Mono.just(filePath)
+                .doFirst(deleteFile(targetFilePath))
+                .map(FileUtil::newRandomAccessFile).flux()
+                .flatMap(file -> split2ChunkedFiles(file, chunkSize).limitRate(8))
+                .doOnNext(it -> log.info("startOffset:{} endOffset:{}", it.getStartOffset(), it.getEndOffset()))
+                .flatMapSequential(chunkedFile -> {
+                    long startOffset = chunkedFile.getStartOffset();
+                    long endOffset = chunkedFile.getEndOffset();
+                    return Mono.just(chunkedFile.getBytes())
+                            .publishOn(Schedulers.boundedElastic())
+                            .flux()
+                            .doOnNext(it -> log.info("starting encrypt chunk file"))
+                            .map(chunkByte -> encryptByECC(chunkByte, "secp256k1", "ECIES", publicKey, "EC"))
+                            .map(encryptBytes -> {
+                                final String base64 = Base64.getEncoder().encodeToString(encryptBytes);
+                                return startOffset + ":" + endOffset + ":" +  base64;
+                            })
+                            ;
+                })
+                .concatMap(content -> appendToFile(targetFilePath, content));
+    }
+
     /**
      * Encrypt large files in parallel, split them into multiple byte arrays for encryption, and finally convert to base64 encoding.
      *
@@ -236,8 +269,10 @@ public interface CipherUtil {
                             .flux()
                             .doOnNext(it -> log.info("starting encrypt chunk file"))
                             .map(chunkByte -> encryptByECC(chunkByte, "secp256k1", "ECIES", publicKey, "EC"))
-                            .map(encryptBytes -> Base64.getEncoder().encodeToString(encryptBytes))
-                            .map(base64 -> startOffset + ":" + endOffset + ":" +  base64)
+                            .map(encryptBytes -> {
+                                final String base64 = Base64.getEncoder().encodeToString(encryptBytes);
+                                return startOffset + ":" + endOffset + ":" +  base64;
+                            })
                             ;
                 })
                 .concatMap(content -> appendToFile(targetFilePath, content));
