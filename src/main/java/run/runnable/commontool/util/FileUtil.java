@@ -195,7 +195,7 @@ public interface FileUtil {
      * @param filter    filter
      * @return {@link Flux}<{@link Path}>
      */
-    private static Flux<Path> listFilesInDirectory(Path directory, Predicate<Path> filter) {
+    static Flux<Path> listFilesInDirectory(Path directory, Predicate<Path> filter) {
         Mono<Stream<Path>> currentFileMono = Mono.fromCallable(() -> Files.list(directory));
         return currentFileMono
                 .subscribeOn(Schedulers.boundedElastic())
