@@ -3,6 +3,7 @@ package run.runnable.commontool.util;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import run.runnable.commontool.entity.ChunkFileInfo;
 
 import java.io.*;
@@ -13,7 +14,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.function.Predicate;
 import java.util.stream.BaseStream;
+import java.util.stream.Stream;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
@@ -183,6 +186,30 @@ public interface FileUtil {
                 emitter.error(e);
             }
         });
+    }
+
+    /**
+     * 获取目录中所有文件，以响应式编程的方式
+     *
+     * @param directory 目录
+     * @param filter    filter
+     * @return {@link Flux}<{@link Path}>
+     */
+    private static Flux<Path> listFilesInDirectory(Path directory, Predicate<Path> filter) {
+        Mono<Stream<Path>> currentFileMono = Mono.fromCallable(() -> Files.list(directory));
+        return currentFileMono
+                .subscribeOn(Schedulers.boundedElastic())
+                .flux()
+                .flatMap(it -> Flux.fromStream(it).filter(filter))
+                .flatMap(it -> {
+                    if (it.toFile().isDirectory()){
+                        return listFilesInDirectory(it, filter);
+                    }else {
+                        return Flux.just(it);
+                    }
+                })
+                .filter(Files::isRegularFile)
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
 }
